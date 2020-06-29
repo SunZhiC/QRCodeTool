@@ -16,8 +16,12 @@ class QRCodeTool: NSObject {
     static let shareInstance = QRCodeTool()
     
     fileprivate lazy var input :AVCaptureDeviceInput? = {
-        let device: AVCaptureDevice = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
-        let input = try? AVCaptureDeviceInput(device: device)
+        let deviceSession: AVCaptureDevice.DiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInDualCamera], mediaType: .video, position: .back)
+        let backDevice = deviceSession.devices[0]
+        var isFlash = backDevice.hasFlash
+        
+        print(isFlash.hashValue)
+        let input = try? AVCaptureDeviceInput(device: deviceSession.devices[0])
         return input
     }()
     
@@ -58,17 +62,18 @@ extension QRCodeTool {
         self.isDrawFrame = isDrawFrame
         
         // 创建一个会话，连接输入和输出
-        if session.canAddInput(input) && session.canAddOutput(output) {
+        if let input = input {
+            if session.canAddInput(input) && session.canAddOutput(output) {
             session.addInput(input)
             session.addOutput(output)
+            }
         }
         
         // 输出处理对象，可以处理的数据类型
-        output.metadataObjectTypes = [AVMetadataObjectTypeQRCode]
+        output.metadataObjectTypes = [AVMetadataObject.ObjectType.qr]
         
         // 添加视频预览图层，然后用户可以看见扫描界面
-
-        preLayer?.frame = UIScreen.main.bounds
+        preLayer!.frame = UIScreen.main.bounds
         inView.layer.insertSublayer(preLayer!, at: 0)
         
         // 5.启动会话
@@ -143,7 +148,7 @@ extension QRCodeTool {
         let outImage = filter?.outputImage
         
         // 4.对图片进行处理
-        let resImage = outImage?.applying(CGAffineTransform(scaleX: scale.x, y: scale.y))
+        let resImage = outImage?.transformed(by: CGAffineTransform(scaleX: scale.x, y: scale.y))
         let image = UIImage(ciImage: resImage!)
         
         guard middleImage != nil else {
@@ -195,7 +200,7 @@ extension QRCodeTool: AVCaptureMetadataOutputObjectsDelegate {
             if isDrawFrame {
                 drawQRCodeFrame(metadataObject: metadataObject, layer: preLayer!)
             }
-            resultStrs.append(metadataObject.stringValue)
+            resultStrs.append(metadataObject.stringValue ?? "")
         }
         
         resultBlock?(resultStrs)
