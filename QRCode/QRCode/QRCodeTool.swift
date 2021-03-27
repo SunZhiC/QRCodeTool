@@ -6,17 +6,16 @@
 //  Copyright © 2016年 sunzhichao. All rights reserved.
 //
 
-import UIKit
 import AVFoundation
+import UIKit
 
-typealias ScanResult = ([String])->()
+typealias ScanResult = ([String]) -> ()
 
 class QRCodeTool: NSObject {
-    
     static let shareInstance = QRCodeTool()
     
-    fileprivate lazy var input :AVCaptureDeviceInput? = {
-        let deviceSession: AVCaptureDevice.DiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInDualCamera], mediaType: .video, position: .back)
+    fileprivate lazy var input: AVCaptureDeviceInput? = {
+        let deviceSession = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInDualCamera], mediaType: .video, position: .back)
         let backDevice = deviceSession.devices[0]
         var isFlash = backDevice.hasFlash
         
@@ -31,13 +30,15 @@ class QRCodeTool: NSObject {
         return output
     }()
     
-    fileprivate lazy var session:AVCaptureSession = {
+    fileprivate lazy var session: AVCaptureSession = {
         let session = AVCaptureSession()
         return session
     }()
     
     fileprivate lazy var preLayer: AVCaptureVideoPreviewLayer? = {
         let preLayer = AVCaptureVideoPreviewLayer(session: self.session)
+        // 设置视频预览图层尺寸适配方法
+        preLayer.videoGravity = .resizeAspectFill
         return preLayer
     }()
     
@@ -46,26 +47,24 @@ class QRCodeTool: NSObject {
     var resultBlock: ScanResult?
 }
 
-
 // MARK: - 开启摄像头扫描二维码
+
 extension QRCodeTool {
-    
     /// 扫描二维码
     ///
     /// - parameter inView:      视频预览图层的承载视图
     /// - parameter isDrawFrame: 是否需要绘制边框
     /// - parameter resultBlock: 结果代码块
-    public func scanQRCode(inView: UIView, isDrawFrame: Bool = false, resultBlock:ScanResult? ){
-        
+    public func scanQRCode(inView: UIView, isDrawFrame: Bool = false, resultBlock: ScanResult?) {
         self.resultBlock = resultBlock
         
         self.isDrawFrame = isDrawFrame
         
         // 创建一个会话，连接输入和输出
         if let input = input {
-            if session.canAddInput(input) && session.canAddOutput(output) {
-            session.addInput(input)
-            session.addOutput(output)
+            if session.canAddInput(input), session.canAddOutput(output) {
+                session.addInput(input)
+                session.addOutput(output)
             }
         }
         
@@ -78,7 +77,6 @@ extension QRCodeTool {
         
         // 5.启动会话
         session.startRunning()
-
     }
     
     /// 取消扫描
@@ -88,12 +86,12 @@ extension QRCodeTool {
 }
 
 // MARK: - 设置扫描区域
+
 extension QRCodeTool {
-    
     /// 设置扫描区域
     ///
     /// - parameter scanRect: 扫描区域
-    public func setScanRect(scanRect: CGRect) {
+    func setScanRect(scanRect: CGRect) {
         let screenSize = UIScreen.main.bounds.size
         let xR = scanRect.origin.x / screenSize.width
         let yR = scanRect.origin.y / screenSize.height
@@ -104,23 +102,22 @@ extension QRCodeTool {
 }
 
 // MARK: - 闪光灯开关
+
 extension QRCodeTool {
-    
     /// 闪光灯开关
     ///
     /// - parameter isOn: 闪光灯状态
-    public func setTorch(isOn: Bool) {
+    func setTorch(isOn: Bool) {
         let device = input?.device
-        if device?.hasTorch ?? false{
+        if device?.hasTorch ?? false {
             //  操作设备之前，必须先搜定设备
-            try?device?.lockForConfiguration()
+            try? device?.lockForConfiguration()
             // 进行修改配置
             device?.torchMode = isOn ? .on : .off
             // 解锁设备
             device?.unlockForConfiguration()
         }
     }
-    
 }
 
 extension QRCodeTool {
@@ -131,7 +128,7 @@ extension QRCodeTool {
     /// - parameter middleImage: 自定义的中间图片
     ///
     /// - returns: 二维码图片
-    public func createQRCode(input: String, scale:CGPoint = CGPoint(x : 30, y : 30) , middleImage:UIImage? ) -> UIImage {
+    func createQRCode(input: String, scale: CGPoint = CGPoint(x: 30, y: 30), middleImage: UIImage?) -> UIImage {
         // 1.创建二维码滤镜
         let filter = CIFilter(name: "CIQRCodeGenerator")
         // 恢复滤镜设置
@@ -157,15 +154,14 @@ extension QRCodeTool {
         return addMiddleImage(image: middleImage!, toBackImage: image)
     }
     
-    
     /// 根据一个二维码图片，查看二维码结果，并返回
     ///
     /// - parameter qrImage: 二维码图片
     ///
     /// - returns: 识别结果和绘制好边框的二维码图片
-    public func detectorQRCode(qrImage: UIImage) -> (resultStrs:[String],resultImg: UIImage) {
+    func detectorQRCode(qrImage: UIImage) -> (resultStrs: [String], resultImg: UIImage) {
         // 1.创建一个二维码探测器
-        let detector = CIDetector(ofType:CIDetectorTypeQRCode, context: nil, options:[CIDetectorAccuracy: CIDetectorAccuracyHigh] )
+        let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
         
         // 2.探测图片的特征值
         let ciImage = CIImage(image: qrImage)
@@ -186,9 +182,9 @@ extension QRCodeTool {
 }
 
 // MARK: - AVCaptureMetadataOutputObjectsDelegate
+
 extension QRCodeTool: AVCaptureMetadataOutputObjectsDelegate {
-    func captureOutput(_ captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [Any]!, from connection: AVCaptureConnection!) {
-        
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         if isDrawFrame {
             removeQRCodeFrame(layer: preLayer!)
         }
@@ -196,7 +192,6 @@ extension QRCodeTool: AVCaptureMetadataOutputObjectsDelegate {
         var resultStrs = [String]()
         
         for metadataObject in metadataObjects as! [AVMetadataMachineReadableCodeObject] {
-            
             if isDrawFrame {
                 drawQRCodeFrame(metadataObject: metadataObject, layer: preLayer!)
             }
@@ -207,16 +202,16 @@ extension QRCodeTool: AVCaptureMetadataOutputObjectsDelegate {
     }
 }
 
-extension QRCodeTool {
-    fileprivate func addMiddleImage(image: UIImage, toBackImage: UIImage) ->UIImage {
+private extension QRCodeTool {
+    func addMiddleImage(image: UIImage, toBackImage: UIImage) -> UIImage {
         // 开启图形上下文
-        let size:CGSize = toBackImage.size
+        let size: CGSize = toBackImage.size
         let scale = UIScreen.main.scale
         UIGraphicsBeginImageContextWithOptions(size, true, scale)
         
         // 绘制大图片
         toBackImage.draw(in: CGRect(x: 0, y: 0, width: size
-            .width, height: size.height))
+                .width, height: size.height))
         
         // 绘制小图片
         let w = size.width * 0.3
@@ -235,8 +230,7 @@ extension QRCodeTool {
         return curImage!
     }
     
-    fileprivate func drawFrame(feature: CIQRCodeFeature, image: UIImage) -> UIImage {
-        
+    func drawFrame(feature: CIQRCodeFeature, image: UIImage) -> UIImage {
         // 1.开启图形上下文
         let size = image.size
         let scale = UIScreen.main.scale
@@ -256,7 +250,6 @@ extension QRCodeTool {
         path.lineWidth = 10
         path.stroke()
         
-        
         // 4.获取新图片
         let curImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
         
@@ -266,7 +259,7 @@ extension QRCodeTool {
         return curImage
     }
     
-    fileprivate func removeQRCodeFrame(layer:AVCaptureVideoPreviewLayer) {
+    func removeQRCodeFrame(layer: AVCaptureVideoPreviewLayer) {
         if let layers = layer.sublayers {
             for layer in layers {
                 if layer.isKind(of: CAShapeLayer.self) {
@@ -276,9 +269,8 @@ extension QRCodeTool {
         }
     }
     
-    fileprivate func drawQRCodeFrame(metadataObject: AVMetadataMachineReadableCodeObject, layer:AVCaptureVideoPreviewLayer) {
-        
-        let qrObj = layer.transformedMetadataObject(for: metadataObject) as? AVMetadataMachineReadableCodeObject
+    func drawQRCodeFrame(metadataObject: AVMetadataMachineReadableCodeObject, layer: AVCaptureVideoPreviewLayer) {
+        guard let qrObj = layer.transformedMetadataObject(for: metadataObject) as? AVMetadataMachineReadableCodeObject else { return }
         
         let shapeLayer = CAShapeLayer()
         shapeLayer.lineWidth = 6
@@ -287,10 +279,8 @@ extension QRCodeTool {
         
         let path = UIBezierPath()
         
-        let pointArray = qrObj?.corners as! [CFDictionary]
-        for (index, pointDict) in pointArray.enumerated() {
-            let point = CGPoint(dictionaryRepresentation: pointDict)!
-            
+        let pointArray = qrObj.corners
+        for (index, point) in pointArray.enumerated() {
             if index == 0 {
                 path.move(to: point)
             } else {
@@ -304,8 +294,3 @@ extension QRCodeTool {
         layer.addSublayer(shapeLayer)
     }
 }
-
-
-
-
-

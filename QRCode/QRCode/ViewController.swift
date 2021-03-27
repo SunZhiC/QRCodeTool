@@ -23,6 +23,7 @@ class ViewController: UIViewController {
         }
         qr.setScanRect(scanRect: scanView.frame)
         qr.setTorch(isOn: false)
+        
     }
 
 
