@@ -12,10 +12,10 @@ import UIKit
 typealias ScanResult = ([String]) -> ()
 
 class QRCodeTool: NSObject {
-    static let shareInstance = QRCodeTool()
+    static let shared = QRCodeTool()
     
     fileprivate lazy var input: AVCaptureDeviceInput? = {
-        let deviceSession = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInDualCamera], mediaType: .video, position: .back)
+        let deviceSession = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInWideAngleCamera], mediaType: .video, position: .back)
         let backDevice = deviceSession.devices[0]
         var isFlash = backDevice.hasFlash
         
@@ -121,15 +121,17 @@ extension QRCodeTool {
 }
 
 extension QRCodeTool {
+    
     /// 根据字符串和图片比例生成一张二维码图片，可以添加自定义中间图片
-    ///
-    /// - parameter input:       输入的字符串内容
-    /// - parameter scale:       图片的缩放比例，默认(30， 30)
-    /// - parameter middleImage: 自定义的中间图片
-    ///
-    /// - returns: 二维码图片
-    func createQRCode(input: String, scale: CGPoint = CGPoint(x: 30, y: 30), middleImage: UIImage?) -> UIImage {
+    /// - Parameters:
+    ///   - input: 输入的字符串内容
+    ///   - definition: 图片清晰度，建议不低于20
+    ///   - middleImage: 自定义的中间图片
+    ///   - scale: 图片的缩放比例，默认(0.3， 0.3)
+    /// - Returns: 二维码图片
+    func createQRCode(input: String, definition: CGPoint = .init(x: 30, y: 30), middleImage: UIImage?, scale: CGPoint = CGPoint(x: 0.3, y: 0.3)) -> UIImage {
         // 1.创建二维码滤镜
+        
         let filter = CIFilter(name: "CIQRCodeGenerator")
         // 恢复滤镜设置
         filter?.setDefaults()
@@ -145,13 +147,13 @@ extension QRCodeTool {
         let outImage = filter?.outputImage
         
         // 4.对图片进行处理
-        let resImage = outImage?.transformed(by: CGAffineTransform(scaleX: scale.x, y: scale.y))
+        let resImage = outImage?.transformed(by: CGAffineTransform(scaleX: definition.x, y: definition.y))
         let image = UIImage(ciImage: resImage!)
         
         guard middleImage != nil else {
             return image
         }
-        return addMiddleImage(image: middleImage!, toBackImage: image)
+        return addMiddleImage(image: middleImage!, toBackImage: image, scale: scale)
     }
     
     /// 根据一个二维码图片，查看二维码结果，并返回
@@ -203,19 +205,18 @@ extension QRCodeTool: AVCaptureMetadataOutputObjectsDelegate {
 }
 
 private extension QRCodeTool {
-    func addMiddleImage(image: UIImage, toBackImage: UIImage) -> UIImage {
+    func addMiddleImage(image: UIImage, toBackImage: UIImage, scale: CGPoint) -> UIImage {
         // 开启图形上下文
         let size: CGSize = toBackImage.size
-        let scale = UIScreen.main.scale
-        UIGraphicsBeginImageContextWithOptions(size, true, scale)
+        UIGraphicsBeginImageContextWithOptions(size, true, UIScreen.main.scale)
         
         // 绘制大图片
         toBackImage.draw(in: CGRect(x: 0, y: 0, width: size
                 .width, height: size.height))
         
         // 绘制小图片
-        let w = size.width * 0.3
-        let h = size.height * 0.3
+        let w = size.width * scale.x
+        let h = size.height * scale.y
         let x = (size.width - w) * 0.5
         let y = (size.height - h) * 0.5
         
