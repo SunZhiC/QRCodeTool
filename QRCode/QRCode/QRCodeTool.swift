@@ -121,7 +121,6 @@ extension QRCodeTool {
 }
 
 extension QRCodeTool {
-    
     /// 根据字符串和图片比例生成一张二维码图片，可以添加自定义中间图片
     /// - Parameters:
     ///   - input: 输入的字符串内容
@@ -133,6 +132,7 @@ extension QRCodeTool {
         // 1.创建二维码滤镜
         
         let filter = CIFilter(name: "CIQRCodeGenerator")
+        
         // 恢复滤镜设置
         filter?.setDefaults()
         
