@@ -1,7 +1,7 @@
 # QRCodeTool
 Swift 5.6
 
-### Scan, read, create tool.
+### QRCode Scan, read, create tool.
 
 ### 二维码扫描、读取、生成工具
 
