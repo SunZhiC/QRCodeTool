@@ -76,12 +76,16 @@ extension QRCodeTool {
         inView.layer.insertSublayer(preLayer!, at: 0)
         
         // 5.启动会话
-        session.startRunning()
+        DispatchQueue.global(qos: .background).async {
+            self.session.startRunning()
+        }
     }
     
     /// 取消扫描
     func stopScan() {
-        session.stopRunning()
+        DispatchQueue.global(qos: .background).async {
+            self.session.stopRunning()
+        }
     }
 }
 
